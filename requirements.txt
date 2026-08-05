@@ -1,0 +1,7 @@
+python-telegram-bot>=22.6
+aiohttp>=3.9
+aiosqlite>=0.19
+numpy>=1.26
+pyyaml>=6.0
+pillow>=10.0
+zhdate>=0.1

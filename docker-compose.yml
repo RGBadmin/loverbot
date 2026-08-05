@@ -1,0 +1,10 @@
+services:
+  loverbot:
+    build: .
+    container_name: loverbot
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:9700:9700"   # 面板只监听本机；需要远程访问请走反代或隧道

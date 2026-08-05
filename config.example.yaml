@@ -1,0 +1,83 @@
+# ============================================================
+# loverbot 配置模板
+# 复制为 config.yaml 后填写。表现（粘人程度/语气/作息）不在这里——
+# 那些由生命档案（data/persona/profile.yaml）推导。
+# ============================================================
+
+telegram:
+  main_bot_token: ""        # 她的 bot（@BotFather 创建）
+  director_bot_token: ""    # 导演 bot（你的控制台；留空禁用）
+  admin_id: ""              # 管理员数字 user id（向 @userinfobot 发消息可查）
+  proxy: ""                 # 需要代理时填，如 http://127.0.0.1:7890
+
+channel:                    # 她的频道（朋友圈），可选
+  channel_id: ""            # @频道用户名 或 -100 开头数字 id
+  discussion_group_id: ""   # 关联讨论组数字 id（评论区互动用）
+
+models:                     # 全部为 OpenAI 兼容接口；base_url 填到 /v1
+  chat:                     # 主对话模型（必填）
+    base_url: ""
+    api_key: ""
+    model: ""
+  light:                    # 轻量决策模型（心跳/意图解析；留空复用 chat）
+    model: ""
+  vlm:                      # 视觉模型（图库打标；留空复用 chat）
+    model: ""
+  embedding:                # 向量模型（记忆召回/图库检索；强烈建议配置）
+    base_url: ""
+    api_key: ""
+    model: ""
+
+tts:                        # 语音合成（留空禁用；引擎可换不锁定）
+  type: ""                  # openai / gpt-sovits / fishaudio
+  openai:
+    base_url: ""
+    api_key: ""
+    model: "tts-1"
+    voice: "alloy"
+  gpt-sovits:               # GPT-SoVITS api_v2 自部署
+    base_url: ""
+    ref_audio: ""           # 参考音频路径（服务端路径）
+    prompt_text: ""
+    text_lang: "zh"
+    prompt_lang: "zh"
+  fishaudio:
+    api_key: ""
+    reference_id: ""        # 克隆声线 id
+
+stt:                        # 语音识别（留空则听不懂语音条）
+  type: ""                  # openai（Whisper 兼容）
+  openai:
+    base_url: ""
+    api_key: ""
+    model: "whisper-1"
+
+imagegen:                   # 生图后端（可多个并存，按顺序降级）
+  backend_order: [nanobanana, comfyui, novelai]
+  nanobanana:               # Gemini 系生图，支持参考图保持人物一致（推荐首选）
+    api_key: ""
+    base_url: "https://generativelanguage.googleapis.com"
+    model: "gemini-2.5-flash-image"
+  comfyui:                  # workflow API 模板放 data/comfyui_workflow.json
+    base_url: ""            # 正/负提示词与种子用 {POSITIVE}/{NEGATIVE}/{SEED} 占位
+    api_key: ""
+    workflow_file: "comfyui_workflow.json"
+  novelai:
+    api_key: ""
+    model: "nai-diffusion-4-5-full"
+
+proactive:                  # 主动消息防打扰（仅有的三个行为参数）
+  min_gap_minutes: 45       # 你最后一条消息后至少隔多久她才主动来找你
+  max_silence_hours: 30     # 最长沉默多久她应当来找你了
+  max_unanswered: 3         # 连续几条主动消息未回她就先停下
+
+panel:                      # Web 管理面板（等同导演权限，切勿暴露公网）
+  host: "0.0.0.0"
+  port: 9700
+  token: ""                 # 必填才启用面板；建议用长随机串
+
+system:
+  timezone: "Asia/Shanghai"
+  heartbeat_minutes: 5      # 心跳间隔（纯代码，不耗 token）
+  data_dir: "./data"
+  debug: false
