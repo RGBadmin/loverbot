@@ -106,11 +106,23 @@ async function renderOverview() {
   const d = await call(() => bridge.apiGet("overview"));
   const health = (label, ok) =>
     el("span", { class: ok ? "ok" : "bad" }, `${label}${ok ? "✅" : "❌"}  `);
+  const warnings = [];
+  if (d.missing && d.missing.length) {
+    warnings.push("待配置：" + d.missing.join("；"));
+  }
+  if (!d.main_bot_online) warnings.push("主 bot 未上线（她还没有身体）");
+  const warnCard = warnings.length
+    ? el("div", { class: "card wide", style: "border-color:#d04b4b" }, [
+        el("h3", {}, "⚠️ 需要你完成配置"),
+        el("div", { class: "big" }, warnings.join("\n") + "\n→ 去「配置」页填写，保存后自动生效。"),
+      ])
+    : "";
   const sched = (d.schedule || [])
     .map((s) => `${s.start_hm}~${s.end_hm} ${s.activity}（${s.status}）`)
     .join("\n") || "（今天还没生成日程）";
   view.replaceChildren(
     el("div", { class: "cards" }, [
+      warnCard,
       el("div", { class: "card" }, [
         el("h3", {}, "她"),
         el("div", { class: "big" }, `${d.name || "未初始化"}\n${d.now || ""}`),
@@ -415,6 +427,30 @@ async function renderActions() {
   await loadPending();
 }
 
+/* ================= 配置 ================= */
+async function renderConfig() {
+  const d = await call(() => bridge.apiGet("config"));
+  const ta = el("textarea", { style: "min-height:560px" });
+  ta.value = d.config || "";
+  view.replaceChildren(
+    el("div", { class: "toolbar" }, [
+      el("button", {
+        class: "action",
+        onclick: async () => {
+          await call(() => bridge.apiPost("config/save", { config: ta.value }));
+          toast("已保存，组件正在按新配置重启（约几秒）…");
+          setTimeout(async () => {
+            try { await renderConfig(); toast("已生效"); } catch {}
+          }, 4000);
+        },
+      }, "保存并应用"),
+      el("span", { class: "meta" },
+        `${d.path}　保存后自动热应用，无需重启进程。含全部密钥，请勿截图外传。`),
+    ]),
+    ta,
+  );
+}
+
 /* ================= 路由 ================= */
 const routes = {
   overview: renderOverview,
@@ -425,6 +461,7 @@ const routes = {
   events: renderEvents,
   gallery: renderGallery,
   actions: renderActions,
+  config: renderConfig,
 };
 
 document.getElementById("tabs").addEventListener("click", async (e) => {

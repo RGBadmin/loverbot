@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import secrets
 import shutil
 from pathlib import Path
 
@@ -43,8 +44,10 @@ _PKG_ROOT = Path(__file__).resolve().parent.parent
 
 
 class App:
-    def __init__(self, cfg: Cfg):
+    def __init__(self, cfg: Cfg, config_path: Path | None = None):
         self.cfg = cfg
+        self.config_path = config_path
+        self.panel_token = ""
         self.ready = False
 
         # 路径
@@ -144,12 +147,24 @@ class App:
         await self._seed_backstory()
         await self.refresh_capabilities()
 
-        await self.tg.start()
-        await self.director.start()
+        # 组件按配置就绪程度启动：缺什么降级什么，进程本身永远能跑起来
+        self.panel_token = self._resolve_panel_token()
         await self.panel.start()
+
+        if self.cfg.main_token:
+            await self.tg.start()
+        else:
+            logger.warning(
+                "[loverbot] 未配置主 bot token——她还没有身体。"
+                f"打开面板 http://<服务器IP>:{self.cfg.panel_port} 的「配置」页填写后保存并应用。"
+            )
+        await self.director.start()
         self.heart.start()
         self.ready = True
-        logger.info("[loverbot] 初始化完成，她醒来了。")
+        missing = self.cfg.missing_required()
+        if missing:
+            logger.warning("[loverbot] 待配置：" + "；".join(missing))
+        logger.info("[loverbot] 启动完成。" + ("" if missing else "她醒来了。"))
 
     async def run(self):
         await self.initialize()
@@ -175,6 +190,29 @@ class App:
             except Exception:
                 logger.warning("[loverbot] 关闭组件时出现异常。", exc_info=True)
         logger.info("[loverbot] 已停止。")
+
+    async def reload(self):
+        """面板保存配置后的软重启：全部组件按新配置重建，进程不退出。"""
+        logger.info("[loverbot] 重新加载配置，重启组件…")
+        await self.terminate()
+        if self.config_path is not None:
+            self.cfg = Cfg.load(self.config_path)
+        await self.initialize()
+
+    def _resolve_panel_token(self) -> str:
+        """面板令牌：配置里有就用；没有则生成并持久化，打进日志（引导流程）。"""
+        if self.cfg.panel_token:
+            return self.cfg.panel_token
+        token_file = self.data_dir / "panel_token.txt"
+        if token_file.exists():
+            token = token_file.read_text(encoding="utf-8").strip()
+            if token:
+                logger.info(f"[loverbot] 面板令牌（data/panel_token.txt）：{token}")
+                return token
+        token = secrets.token_urlsafe(18)
+        token_file.write_text(token, encoding="utf-8")
+        logger.info(f"[loverbot] 已自动生成面板令牌：{token}（保存在 data/panel_token.txt）")
+        return token
 
     # ==================================================================
     # 绑定对话（导演 bot /link 管理；她的一切收发都以此为家）

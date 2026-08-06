@@ -4,7 +4,7 @@ services:
     container_name: loverbot
     restart: unless-stopped
     volumes:
-      - ./config.yaml:/app/config.yaml:ro
+      - ./config:/app/config     # config/config.yaml 首次启动自动生成，面板可在线编辑
       - ./data:/app/data
     ports:
-      - "127.0.0.1:9700:9700"   # 面板只监听本机；需要远程访问请走反代或隧道
+      - "9700:9700"              # Web 面板（token 鉴权）。公网机器建议改回 127.0.0.1:9700:9700 并走反代/隧道

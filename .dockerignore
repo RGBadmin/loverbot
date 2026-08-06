@@ -1,6 +1,6 @@
 .git/
 data/
-config.yaml
+config/
 __pycache__/
 *.pyc
 .pytest_cache/

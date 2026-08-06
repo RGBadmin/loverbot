@@ -27,9 +27,6 @@ class PanelServer:
 
     # ------------------------------------------------------------------
     async def start(self):
-        if not self.app.cfg.panel_token:
-            logger.info("[loverbot] 未设置 panel.token，Web 面板停用。")
-            return
         try:
             webapp = web.Application(middlewares=[self._auth_middleware], client_max_size=64 * 1024 * 1024)
             self._routes(webapp)
@@ -59,7 +56,7 @@ class PanelServer:
         if auth.startswith("Bearer "):
             token = auth[7:]
         token = token or request.query.get("token", "")
-        if token != self.app.cfg.panel_token:
+        if not self.app.panel_token or token != self.app.panel_token:
             return web.json_response({"message": "unauthorized"}, status=401)
         return await handler(request)
 
@@ -83,6 +80,8 @@ class PanelServer:
         r.add_post("/api/gallery/scan", self.gallery_scan)
         r.add_post("/api/gallery/tagall", self.gallery_tagall)
         r.add_post("/api/gallery/update", self.gallery_update)
+        r.add_get("/api/config", self.get_config)
+        r.add_post("/api/config/save", self.save_config)
         r.add_get("/api/export", self.export)
         r.add_static("/", _WEB_DIR, show_index=False)
 
@@ -97,6 +96,9 @@ class PanelServer:
         last_user = await app.dao.kv_get("last_user_ts", 0) or 0
         return web.json_response({
             "ready": app.ready,
+            "missing": app.cfg.missing_required(),
+            "main_bot_online": bool(app.tg and app.tg.application),
+            "director_online": bool(app.director and app.director.application),
             "linked_umo": await app.linked_chat(),
             "name": app.profile.name if app.profile else "",
             "now": app.clock.describe_now(app.profile.met_on, app.profile.anniversary),
@@ -283,6 +285,38 @@ class PanelServer:
         else:
             return web.json_response({"message": "不支持的操作"}, status=400)
         return web.json_response({"ok": True})
+
+    # ------------------------------------------------------------------
+    # 配置：面板即引导流程——读改 config.yaml，保存后软重启组件
+    # ------------------------------------------------------------------
+    async def get_config(self, request):
+        path = self.app.config_path
+        text = path.read_text(encoding="utf-8") if path and path.exists() else ""
+        return web.json_response({"config": text, "path": str(path or "")})
+
+    async def save_config(self, request):
+        payload = await request.json()
+        text = str(payload.get("config") or "")
+        try:
+            parsed = yaml.safe_load(text)
+            if not isinstance(parsed, dict):
+                raise ValueError("顶层必须是键值结构")
+        except Exception as e:
+            return web.json_response({"message": f"YAML 格式不合法：{e}"}, status=400)
+        path = self.app.config_path
+        if path is None:
+            return web.json_response({"message": "运行时未指定配置文件路径"}, status=400)
+        path.write_text(text, encoding="utf-8")
+
+        async def _apply():
+            await asyncio.sleep(0.6)  # 先让本次响应返回
+            try:
+                await self.app.reload()
+            except Exception:
+                logger.error("[loverbot] 配置热应用失败：", exc_info=True)
+
+        asyncio.get_running_loop().create_task(_apply())
+        return web.json_response({"saved": True, "applying": True})
 
     # ------------------------------------------------------------------
     async def export(self, request):

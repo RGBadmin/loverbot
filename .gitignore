@@ -4,5 +4,5 @@ __pycache__/
 .DS_Store
 *.log
 data/
-config.yaml
+config/
 .pytest_cache/

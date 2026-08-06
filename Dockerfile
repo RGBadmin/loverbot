@@ -14,4 +14,4 @@ COPY . .
 VOLUME ["/app/data"]
 EXPOSE 9700
 
-CMD ["python", "main.py", "-c", "config.yaml"]
+CMD ["python", "main.py", "-c", "config/config.yaml"]

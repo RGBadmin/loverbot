@@ -50,6 +50,12 @@ class Heartbeat:
         await app.life.ensure_today_plan()
         await app.life.advance()
 
+        # 需要模型与主 bot 的生命活动：配置不全时安静跳过（先跑起来的设计理念）；
+        # 待办动作留在队列里，配置补齐后自然恢复执行
+        if not (app.llm.role_configured("chat") and app.tg and app.tg.application):
+            self._ticks += 1
+            return
+
         # 2. 到期的待办动作（导演编排/她自己的打算，D7）
         if app.actions:
             for row in await app.dao.due_actions():

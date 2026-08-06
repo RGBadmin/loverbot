@@ -40,35 +40,44 @@
 
 绑定后，她的聊天、主动消息、提醒都发生在这个对话里；随时可以 `/link` 切换、`/unlink` 解除。尚未绑定时，管理员私聊主 bot 会自动绑定当前对话，开箱即用。
 
-## 部署
+## 部署：先跑起来，再在面板里配置
 
-### 准备
-
-- 两个 Telegram bot（@BotFather 创建）：主 bot 与导演 bot；
-  **主 bot 关闭 Group Privacy**（BotFather → Bot Settings → Group Privacy → Disable），
-  否则她收不到讨论组里的评论；
-- 模型服务：对话 LLM（OpenAI 兼容，必需）、Embedding（记忆/图库检索，强烈建议）、
-  视觉模型 / 轻量模型 / TTS / STT / 生图后端（可选，缺什么降级什么）。
+loverbot 不要求任何前置配置——空配置也能启动，Web 面板就是引导流程：
+缺什么，面板会告诉你，在「配置」页补上，保存即热应用，全程无需重启进程。
 
 ### Docker（推荐）
 
 ```bash
 git clone https://github.com/RGBadmin/loverbot.git
 cd loverbot
-cp config.example.yaml config.yaml   # 编辑填写，至少：主 bot token、admin_id、models.chat
 docker compose up -d --build
-docker compose logs -f               # 看到「她醒来了」即成功
+docker compose logs -f    # 日志里有自动生成的面板令牌
 ```
+
+浏览器打开 `http://<服务器IP>:9700`，输入日志里的令牌，进入「配置」页把
+主 bot token、导演 bot token、管理员 id、模型接口填上，点「保存并应用」——
+日志出现「她醒来了」即完成。
 
 ### 裸机
 
 ```bash
 git clone https://github.com/RGBadmin/loverbot.git
 cd loverbot
-pip install -r requirements.txt      # 需要 Python 3.11+；语音条需要系统安装 ffmpeg
-cp config.example.yaml config.yaml   # 编辑填写
-python main.py
+pip install -r requirements.txt   # 需要 Python 3.11+；语音条需要系统安装 ffmpeg
+python main.py                    # 首次启动自动生成 config/config.yaml 与面板令牌
 ```
+
+配置文件在 `config/config.yaml`（模板注释齐全，直接改文件也可以）；
+面板令牌优先取配置里的 `panel.token`，未设置则自动生成并保存在
+`data/panel_token.txt`（日志里也会打印）。
+
+### 需要准备的外部资源
+
+- 两个 Telegram bot（@BotFather 创建）：主 bot 与导演 bot；
+  **主 bot 关闭 Group Privacy**（BotFather → Bot Settings → Group Privacy → Disable），
+  否则她收不到讨论组里的评论；
+- 模型服务：对话 LLM（OpenAI 兼容，必需）、Embedding（记忆/图库检索，强烈建议）、
+  视觉模型 / 轻量模型 / TTS / STT / 生图后端（可选，缺什么降级什么）。
 
 ## 配置她
 
@@ -138,11 +147,11 @@ python main.py
 
 ## 安全
 
-- 导演 bot 与 Web 面板等同最高权限：导演 bot 只认 `telegram.admin_id`，
-  面板必须设置 `panel.token` 才会启动，**切勿把面板端口暴露公网**
-  （compose 默认只监听本机 127.0.0.1）；
+- 导演 bot 与 Web 面板等同最高权限：导演 bot 只认 `telegram.admin_id`；
+  面板所有接口都要求令牌（未配置时自动生成强随机令牌），
+  公网机器建议把 compose 的端口映射改回 `127.0.0.1:9700:9700` 并经反代或 SSH 隧道访问；
 - 频道评论等外部文本一律以"她读到的内容"包裹并附防注入护栏，绝不进入指令层；
-- `config.yaml` 含全部密钥，注意文件权限，绝不提交进任何仓库。
+- `config/config.yaml` 含全部密钥，注意文件权限，绝不提交进任何仓库。
 
 ## 开发
 
