@@ -6,3 +6,4 @@ __pycache__/
 data/
 config/
 .pytest_cache/
+docker-compose.override.yml

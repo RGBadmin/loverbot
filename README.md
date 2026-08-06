@@ -71,6 +71,21 @@ python main.py                    # 首次启动自动生成 config/config.yaml 
 面板令牌优先取配置里的 `panel.token`，未设置则自动生成并保存在
 `data/panel_token.txt`（日志里也会打印）。
 
+### 升级与个性化：你要动的文件都不在版本库里
+
+升级永远只需 `git pull && docker compose up -d --build`。
+版本库内的文件（含 `docker-compose.yml`）请勿直接修改；
+需要调整部署参数时，在同目录新建 `docker-compose.override.yml`
+（docker compose 自动合并它，且被 gitignore 排除，升级永不冲突）。例如把面板改为只监听本机：
+
+```yaml
+# docker-compose.override.yml
+services:
+  loverbot:
+    ports: !override
+      - "127.0.0.1:9700:9700"
+```
+
 ### 需要准备的外部资源
 
 - 两个 Telegram bot（@BotFather 创建）：主 bot 与导演 bot；

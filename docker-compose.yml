@@ -1,3 +1,6 @@
+# 本文件随仓库更新，请勿直接修改（否则 git pull 会冲突）。
+# 个性化（改端口绑定、加代理环境变量等）写在同目录的 docker-compose.override.yml，
+# docker compose 会自动合并它，且该文件不进版本库。示例见 README。
 services:
   loverbot:
     build: .
@@ -7,4 +10,4 @@ services:
       - ./config:/app/config     # config/config.yaml 首次启动自动生成，面板可在线编辑
       - ./data:/app/data
     ports:
-      - "9700:9700"              # Web 面板（token 鉴权）。公网机器建议改回 127.0.0.1:9700:9700 并走反代/隧道
+      - "9700:9700"              # Web 面板（token 鉴权）
